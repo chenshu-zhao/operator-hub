@@ -13,5 +13,5 @@ export function getDags(id: string) {
 }
 
 export function postExecutions(id: string, data: any) {
-  return post(`${apis.operators}/${id}/executions`, { body: data });
+  return post(`${apis.operators}/${id}/executions`, { timeout: 0, body: data });
 }
