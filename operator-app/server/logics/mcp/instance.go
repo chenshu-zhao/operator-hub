@@ -4,13 +4,13 @@ import (
 	"context"
 	"net/http"
 
-	infraerrors "devops.aishu.cn/AISHUDevOps/DIP/_git/agent-operator-app/server/infra/errors"
-	"devops.aishu.cn/AISHUDevOps/DIP/_git/agent-operator-app/server/interfaces"
-	"devops.aishu.cn/AISHUDevOps/DIP/_git/agent-operator-app/server/interfaces/model"
-	"devops.aishu.cn/AISHUDevOps/DIP/_git/agent-operator-app/server/logics/mcp/core"
-	"devops.aishu.cn/AISHUDevOps/DIP/_git/agent-operator-app/server/logics/mcp/deployer"
-	"devops.aishu.cn/AISHUDevOps/DIP/_git/agent-operator-app/server/logics/mcp/storage"
-	"devops.aishu.cn/AISHUDevOps/DIP/_git/agent-operator-app/server/utils"
+	infraerrors "github.com/kweaver-ai/operator-hub/operator-app/server/infra/errors"
+	"github.com/kweaver-ai/operator-hub/operator-app/server/interfaces"
+	"github.com/kweaver-ai/operator-hub/operator-app/server/interfaces/model"
+	"github.com/kweaver-ai/operator-hub/operator-app/server/logics/mcp/core"
+	"github.com/kweaver-ai/operator-hub/operator-app/server/logics/mcp/deployer"
+	"github.com/kweaver-ai/operator-hub/operator-app/server/logics/mcp/storage"
+	"github.com/kweaver-ai/operator-hub/operator-app/server/utils"
 )
 
 func (s *mcpInstanceServiceImpl) InitOnStartup(ctx context.Context) (err error) {
@@ -38,7 +38,7 @@ func (s *mcpInstanceServiceImpl) InitOnStartup(ctx context.Context) (err error) 
 
 	// 3. 初始化mcp实例
 	for _, resourceDeploy := range resourceDeploys {
-		mcpConfig := &interfaces.MCPConfig{}
+		var mcpConfig *interfaces.MCPConfig
 		mcpConfig, err = utils.JSONToObjectWithError[*interfaces.MCPConfig](resourceDeploy.Config)
 		if err != nil {
 			s.Logger.Errorf("[InitOnStartup] create mcp instance failed, mcpID: %s, mcpVersion: %d, error: %+v", mcpConfig.MCPID, mcpConfig.Version, err)
@@ -68,9 +68,13 @@ func (s *mcpInstanceServiceImpl) CreateMCPInstance(ctx context.Context, req *int
 	}
 	defer func() {
 		if err != nil {
-			tx.Rollback()
+			if rbErr := tx.Rollback(); rbErr != nil {
+				s.Logger.Errorf("[CreateMCPInstance] rollback failed: %v", rbErr)
+			}
 		} else {
-			tx.Commit()
+			if cmErr := tx.Commit(); cmErr != nil {
+				s.Logger.Errorf("[CreateMCPInstance] commit failed: %v", cmErr)
+			}
 		}
 	}()
 
